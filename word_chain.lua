@@ -1,4 +1,4 @@
--- Choimin Hub Ultimate V10: Auto-Exec Installer & Dual DB Structure
+-- Choimin Hub Ultimate V11: Single Instance & Group Check & Silent Auto-Exec
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
@@ -8,7 +8,31 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 ----------------------------------------------------------------
--- 1. 지정된 외부 스크립트(auto.lua) 자동 실행 등록 (Auto-Exec)
+-- 0. 그룹 검증 (그룹 826261897 전용)
+----------------------------------------------------------------
+local ALLOWED_GROUP_ID = 826261897
+if game.CreatorType ~= Enum.CreatorType.Group or game.CreatorId ~= ALLOWED_GROUP_ID then
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "CHOIMIN HUB",
+            Text = "지원되지 않는 게임입니다. (지정 그룹 전용)",
+            Duration = 4
+        })
+    end)
+    return
+end
+
+----------------------------------------------------------------
+-- 1. 중복 실행 방지 (기존 UI 및 프로세스 제거)
+----------------------------------------------------------------
+local UI_NAME = "ChoiminHubUI_V11"
+local existingUI = game.CoreGui:FindFirstChild(UI_NAME)
+if existingUI then
+    existingUI:Destroy()
+end
+
+----------------------------------------------------------------
+-- 2. 지정된 외부 스크립트(auto.lua) 자동 실행 등록 (조용히 처리)
 ----------------------------------------------------------------
 local TARGET_AUTO_URL = "https://raw.githubusercontent.com/UNTITLED-HUB/UNTITLED-HUB/main/auto.lua"
 local AUTO_EXEC_SCRIPT = string.format([[
@@ -32,17 +56,8 @@ if queue_teleport then
     end)
 end
 
--- (3) 등록 완료 시스템 알림
-pcall(function()
-    StarterGui:SetCore("SendNotification", {
-        Title = "CHOIMIN HUB",
-        Text = "auto.lua 자동 실행 등록 완료!",
-        Duration = 3
-    })
-end)
-
 ----------------------------------------------------------------
--- 2. 끝말잇기 핵심 로직 (자동 실행 X / 직접 실행 시에만 동작)
+-- 3. 끝말잇기 핵심 로직 (직접 실행 시에만 동작)
 ----------------------------------------------------------------
 local SETTINGS = { AutoFarm = false, AutoWord = false, TypingSpeed = 0.3 }
 local wordDB = nil
@@ -86,7 +101,7 @@ end
 
 -- ScreenGui Setup
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ChoiminHubUI_V10"
+ScreenGui.Name = UI_NAME
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = game.CoreGui
 
@@ -580,9 +595,10 @@ local function processAutoWord()
     end
 end
 
--- Auto Farm Loop
+-- Auto Farm Loop (구 스크립트 실행 시 종료 처리 포함)
 task.spawn(function()
     while task.wait(2) do
+        if not ScreenGui or not ScreenGui.Parent then break end
         if SETTINGS.AutoFarm then
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
@@ -600,12 +616,13 @@ task.spawn(function()
     end
 end)
 
--- Polling Loop
+-- Polling Loop (구 스크립트 실행 시 종료 처리 포함)
 task.spawn(function()
     fetchDB()
     renderDictionary()
     
     while task.wait(0.05) do
+        if not ScreenGui or not ScreenGui.Parent then break end
         if SETTINGS.AutoWord then
             pcall(processAutoWord)
         end
