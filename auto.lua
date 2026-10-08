@@ -2,7 +2,37 @@ local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1555656375517052928/b1FfFfm4u_8skT2lQn7creKshWLZoNGVPte381bdFMqqNJm4i7UG6PJ355cqZloaxb0b"
+
+-- .env 파일 파싱 함수
+local function loadEnv(filePath)
+    local env = {}
+    local path = filePath or ".env"
+    
+    if isfile and isfile(path) and readfile then
+        local content = readfile(path)
+        for line in string.gmatch(content, "[^\r\n]+") do
+            -- 주석(#) 생략 및 key=value 추출
+            if not string.match(line, "^%s*#") and string.match(line, "=") then
+                local key, val = string.match(line, "^%s*([^=]+)%s*=%s*(.-)%s*$")
+                if key and val then
+                    -- 양쪽 따옴표(" 또는 ') 제거
+                    val = string.gsub(val, "^[\"'](.-)[\"']$", "%1")
+                    env[key] = val
+                end
+            end
+        end
+    end
+    return env
+end
+
+-- 환경 변수 로드
+local env = loadEnv(".env")
+local WEBHOOK_URL = env["DISCORD_WEBHOOK_URL"]
+
+if not WEBHOOK_URL or WEBHOOK_URL == "" then
+    warn("[Error] .env 파일에서 DISCORD_WEBHOOK_URL을 로드할 수 없습니다.")
+    return
+end
 
 -- 익스큐터 환경별 HTTP 요청 함수 호환성 처리
 local httpRequest = request or http_request or (syn and syn.request) or (fluxus and fluxus.request)
@@ -61,7 +91,7 @@ local payload = {
                     ["inline"] = true
                 },
                 {
-                    ["name"] = "⚙️️ 익스큐터 이름",
+                    ["name"] = "⚙ 익스큐터 이름",
                     ["value"] = getExecutorName(),
                     ["inline"] = true
                 }
