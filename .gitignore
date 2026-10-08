@@ -1,0 +1,9 @@
+# 환경 변수 및 웹훅 보안 파일 제외
+.env
+.env.*
+!.env.example
+
+# OS 및 기타 설정 파일 제외
+.DS_Store
+Thumbs.db
+*.log
